@@ -9,16 +9,12 @@ SDL_Renderer* launch() {
     SDL_Init(SDL_INIT_EVERYTHING);
     SDL_CreateWindowAndRenderer(640, 480, 0, &window, &renderer);
 
-    
-
-    /*SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderDrawPoint(renderer, 320, 240);*/
-
     return renderer;
 }
 
 void loop(SDL_Renderer* renderer) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderDrawPoint(renderer, 320, 240);
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
 }

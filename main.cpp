@@ -18,7 +18,7 @@ int main(){
             if (event.type == SDL_QUIT) running = false;
         }
         loop(render);
-        //afficherImage(render, texture, rect);
+        
         
 
         SDL_Delay(16); // ~60 FPS

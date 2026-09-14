@@ -8,7 +8,7 @@ Poisson::Poisson(SDL_Renderer* renderer)
     : renderer(renderer), vitesse(0.0), direction(0.0), positionX(0.0), positionY(0.0) {
 }
 
-void Poisson::render() const {
+void Poisson::render() const { // afficher le poisson
     SDL_Rect destRect = { static_cast<int>(positionX), static_cast<int>(positionY), 50, 50 };
     SDL_RenderCopy(renderer, nullptr, &destRect, nullptr);
 }
