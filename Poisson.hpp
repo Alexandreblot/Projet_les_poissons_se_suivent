@@ -33,7 +33,7 @@ private:
 
     void loadTextures();
 
-    void updatePosition();
+    void updatePosition(double X, double Y);
 
     void render() const;
 
