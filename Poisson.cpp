@@ -4,31 +4,13 @@
 
 #include <iostream>
 
-Poisson::Poisson(SDL_Renderer* renderer, PoissonType type)
-    : renderer(renderer), type(type), vitesse(0.0), direction(0.0), positionX(0.0), positionY(0.0) {
-    loadTextures();
+Poisson::Poisson(SDL_Renderer* renderer)
+    : renderer(renderer), vitesse(0.0), direction(0.0), positionX(0.0), positionY(0.0) {
 }
 
-Poisson::~Poisson() {
-    for (auto texture : textures) {
-        if (texture) {
-            SDL_DestroyTexture(texture);
-        }
-    }
-}
-
-Poisson::PoissonType Poisson::getType() const {
-    return type;
-}
 void Poisson::render() const {
     SDL_Rect destRect = { static_cast<int>(positionX), static_cast<int>(positionY), 50, 50 };
-    SDL_RenderCopy(renderer, getTexture(), nullptr, &destRect);
-}
-
-void Poisson::loadTextures() {
-    textures[static_cast<int>(PoissonType::Rouge)] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("rouge.bmp"));
-    textures[static_cast<int>(PoissonType::Vert)] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("vert.bmp"));
-    textures[static_cast<int>(PoissonType::Bleu)] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("bleu.bmp"));
+    SDL_RenderCopy(renderer, nullptr, &destRect, nullptr);
 }
 
 void Poisson::updatePosition(double X, double Y) {
@@ -36,4 +18,17 @@ void Poisson::updatePosition(double X, double Y) {
     positionY += vitesse * sin(direction);
 
     handleCollisionWithWindowBounds();
+}
+
+void Poisson::handleCollisionWithWindowBounds() {
+    int windowWidth, windowHeight;
+    SDL_GetRendererOutputSize(renderer, &windowWidth, &windowHeight);
+
+    if (positionX < 0) {
+        Poisson::~Poisson();
+    }
+
+    if (positionY < 0) {
+        Poisson::~Poisson();
+    }
 }
