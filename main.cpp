@@ -7,10 +7,15 @@
 
 
 int main(){
-    SDL_Renderer* render = launch();
+    int I = 0;
+    while (I < 100) {
+        SDL_Renderer* render = launch();
 
-    Poisson poisson(render, 100.0, 100.0);
-    poisson.affichage();
+        Poisson poisson(render, 100.0, 100.0);
+        poisson.affichage();
+        I++;
+    }
 
     return 0;
+
 }
