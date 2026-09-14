@@ -1,6 +1,6 @@
 #include <SDL2/SDL.h>
 #include <iostream>
-#include "SDL.h"
+#include "SDL.hpp"
 
 SDL_Renderer* launch() {
     SDL_Window* window = nullptr;

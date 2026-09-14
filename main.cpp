@@ -1,6 +1,7 @@
 #include <iostream>
 #include <SDL2/SDL.h>
-#include "SDL.h"
+#include "SDL.hpp"
+#include "Poisson.hpp"
 
 
 
