@@ -1,16 +1,21 @@
 #include "Poisson.hpp"
-
 #include <SDL2/SDL.h>
-
 #include <iostream>
 
 Poisson::Poisson(SDL_Renderer* renderer)
     : renderer(renderer), vitesse(0.0), direction(0.0), positionX(0.0), positionY(0.0) {
 }
 
-void Poisson::render() const { // afficher le poisson
-    SDL_Rect destRect = { static_cast<int>(positionX), static_cast<int>(positionY), 50, 50 };
-    SDL_RenderCopy(renderer, nullptr, &destRect, nullptr);
+void Poisson::render() const {
+    SDL_Rect destRect = {
+        static_cast<int>(positionX),
+        static_cast<int>(positionY),
+        10,
+        10
+    };
+
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    SDL_RenderFillRect(renderer, &destRect);
 }
 
 void Poisson::updatePosition(double X, double Y) {

@@ -14,12 +14,12 @@ public:
     double positionX;
     double positionY;
 
+    void render() const;
+
 private:
     SDL_Renderer* renderer;
 
     void updatePosition(double X, double Y);
-
-    void render() const;
 
     void handleCollisionWithWindowBounds();
 
