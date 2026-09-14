@@ -6,7 +6,7 @@
 
 class Poisson {
 public:
-    Poisson(SDL_Renderer* renderer);
+    Poisson(SDL_Renderer* renderer, double positionX = 0.0, double positionY = 0.0);
     ~Poisson() = default;
     
     double vitesse;
@@ -14,7 +14,7 @@ public:
     double positionX;
     double positionY;
 
-    void render() const;
+    void affichage();
 
 private:
     SDL_Renderer* renderer;
@@ -22,5 +22,4 @@ private:
     void updatePosition(double X, double Y);
 
     void handleCollisionWithWindowBounds();
-
 };
