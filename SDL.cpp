@@ -7,7 +7,7 @@ int main() {
     SDL_Renderer* renderer = nullptr;
 
     SDL_Init(SDL_INIT_EVERYTHING);
-    SDL_CreateWindowAndRenderer(640,480,0,&window,&renderer);
+    SDL_CreateWindowAndRenderer(640, 480, 0, &window, &renderer);
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
