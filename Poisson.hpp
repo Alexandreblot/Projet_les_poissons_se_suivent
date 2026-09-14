@@ -8,6 +8,7 @@ class Poisson {
 public:
     Poisson(SDL_Renderer* renderer);
     ~Poisson() = default;
+    
     double vitesse;
     double direction;
     double positionX;
