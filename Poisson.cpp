@@ -2,8 +2,8 @@
 #include <SDL2/SDL.h>
 #include <iostream>
 
-Poisson::Poisson(SDL_Renderer* renderer, double positionX, double positionY)
-    : renderer(renderer), vitesse(0.0), direction(0.0), positionX(positionX), positionY(positionY) {
+Poisson::Poisson(SDL_Renderer* renderer, double vitesse, double direction, double positionX, double positionY)
+    : renderer(renderer), vitesse(vitesse), direction(direction), positionX(positionX), positionY(positionY) {
 }
 
 void Poisson::updatePosition() {
@@ -17,12 +17,18 @@ void Poisson::handleCollisionWithWindowBounds() {
     int windowWidth, windowHeight;
     SDL_GetRendererOutputSize(renderer, &windowWidth, &windowHeight);
 
-    if (positionX < 0) {
-        Poisson::~Poisson();
+    const double marge = 20;
+
+    if (positionX < -marge) {
+        positionX = windowWidth + marge;
+    } else if (positionX > windowWidth + marge) {
+        positionX = -marge;
     }
 
-    if (positionY < 0) {
-        Poisson::~Poisson();
+    if (positionY < -marge) {
+        positionY = windowHeight + marge;
+    } else if (positionY > windowHeight + marge) {
+        positionY = -marge;
     }
 }
 

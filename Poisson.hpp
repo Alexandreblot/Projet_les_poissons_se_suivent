@@ -6,7 +6,7 @@
 
 class Poisson {
 public:
-    Poisson(SDL_Renderer* renderer, double positionX = 0.0, double positionY = 0.0);
+    Poisson(SDL_Renderer* renderer, double vitesse, double direction, double positionX = 0.0, double positionY = 0.0);
     ~Poisson() = default;
     
     double vitesse;

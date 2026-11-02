@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
 
     std::vector<Poisson> poissons;
     for (int i = 0; i < 20; i++) {
-        poissons.emplace_back(render, rand() % 640, rand() % 480);
+        poissons.emplace_back(render, 2.0, static_cast<double>(rand() % 360), rand() % 640, rand() % 480);
     }
 
     bool running = true;
