@@ -6,7 +6,7 @@ Poisson::Poisson(SDL_Renderer* renderer, double positionX, double positionY)
     : renderer(renderer), vitesse(0.0), direction(0.0), positionX(positionX), positionY(positionY) {
 }
 
-void Poisson::updatePosition(double X, double Y) {
+void Poisson::updatePosition() {
     positionX += vitesse * cos(direction);
     positionY += vitesse * sin(direction);
 

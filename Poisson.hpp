@@ -19,7 +19,7 @@ public:
 private:
     SDL_Renderer* renderer;
 
-    void updatePosition(double X, double Y);
+    void updatePosition();
 
     void handleCollisionWithWindowBounds();
 };

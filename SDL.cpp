@@ -2,7 +2,7 @@
 #include <iostream>
 #include "SDL.hpp"
 
-SDL_Renderer* launch() {
+SDL_Renderer* initialisation() {
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
 

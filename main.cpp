@@ -8,14 +8,13 @@
 
 int main(){
     int I = 0;
-    while (I < 100) {
-        SDL_Renderer* render = launch();
-
-        Poisson poisson(render, 100.0, 100.0);
+    SDL_Renderer* render = initialisation();
+    while (I < 2) {
+        Poisson poisson(render,  rand() % 640, rand() % 480);
         poisson.affichage();
         I++;
+        SDL_Delay(1000);
     }
 
     return 0;
-
 }
