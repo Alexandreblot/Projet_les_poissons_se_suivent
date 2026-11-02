@@ -7,7 +7,7 @@ SDL_Renderer* initialisation() {
     SDL_Renderer* renderer = nullptr;
 
     SDL_Init(SDL_INIT_EVERYTHING);
-    SDL_CreateWindowAndRenderer(640, 480, 0, &window, &renderer);
+    SDL_CreateWindowAndRenderer(640, 480, SDL_WINDOW_SHOWN, &window, &renderer);
 
     return renderer;
 }
