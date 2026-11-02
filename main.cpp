@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
     SDL_Renderer* render = initialisation();
 
     std::vector<Poisson> poissons;
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 20; i++) {
         poissons.emplace_back(render, rand() % 640, rand() % 480);
     }
 
