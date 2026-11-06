@@ -3,7 +3,10 @@
 #include <vector>
 #include <SDL2/SDL.h>
 #include <array>
+#include <vector>
 
+
+class Rocher;
 
 class Poisson {
 public:
@@ -18,9 +21,9 @@ public:
     void dessiner();
     void updatePosition();
     void suivreBanc(const std::vector<Poisson>& banc);
+    void eviterRochers(const std::vector<Rocher>& rochers);
 
 private:
     SDL_Renderer* renderer;
-
     void handleCollisionWithWindowBounds();
 };

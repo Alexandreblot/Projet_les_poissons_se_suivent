@@ -1,17 +1,12 @@
 #include <iostream>
-#include <SDL2/SDL.h>
-#include "SDL.hpp"
-#include "Poisson.hpp"
-
-#include <iostream>
 #include <vector>
 #include <cstdlib>
 #include <ctime>
-#include <SDL2/SDL_image.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include "SDL.hpp"
 #include "Poisson.hpp"
-
+#include "Rocher.hpp"
 
 int main(int argc, char* argv[]) {
     srand(static_cast<unsigned>(time(nullptr)));
@@ -24,10 +19,31 @@ int main(int argc, char* argv[]) {
         std::cout << "Erreur chargement image : " << IMG_GetError() << std::endl;
     }
 
+    SDL_Texture* imageRocher = IMG_LoadTexture(render, "rocher.png");
+    if (!imageRocher) {
+        std::cout << "Erreur chargement image rocher : " << IMG_GetError() << std::endl;
+    }
+
+    int largeur, hauteur;
+    SDL_GetRendererOutputSize(render, &largeur, &hauteur);
+
+    // ---- Rochers ----
+    const int nombreRochers = 30;        
+    const int rayonMin = 10;            // taille minimale (demi-largeur)
+    const int rayonMax = 100;            // taille maximale
+    std::vector<Rocher> rochers;
+    for (int i = 0; i < nombreRochers; i++) {
+        double rayon = rayonMin + rand() % (rayonMax - rayonMin + 1);
+        double x = rand() % largeur;
+        double y = rand() % hauteur;
+        rochers.emplace_back(render, imageRocher, x, y, rayon);
+    }
+
+    // ---- Poissons ----
     int nombrePoissons = 100;
     std::vector<Poisson> poissons;
     for (int i = 0; i < nombrePoissons; i++) {
-        poissons.emplace_back(render, 3, rand() % 360, rand() % 640, rand() % 480);
+        poissons.emplace_back(render, 3, rand() % 360, rand() % largeur, rand() % hauteur);
     }
 
     bool running = true;
@@ -40,8 +56,13 @@ int main(int argc, char* argv[]) {
 
         SDL_RenderCopy(render, fond, NULL, NULL);
 
+        for (auto& r : rochers) {
+            r.dessiner();
+        }
+
         for (auto& p : poissons) {
             p.suivreBanc(poissons);
+            p.eviterRochers(rochers);
             p.updatePosition();
             p.dessiner();
         }
@@ -50,7 +71,7 @@ int main(int argc, char* argv[]) {
         SDL_Delay(16);
     }
 
-
+    SDL_DestroyTexture(imageRocher);
     SDL_DestroyTexture(fond);
     IMG_Quit();
     return 0;

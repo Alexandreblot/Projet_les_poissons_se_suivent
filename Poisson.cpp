@@ -1,4 +1,5 @@
 #include "Poisson.hpp"
+#include "Rocher.hpp"
 #include <SDL2/SDL.h>
 #include <iostream>
 #include <cmath>
@@ -38,7 +39,7 @@ void Poisson::dessiner() {
     int cx = static_cast<int>(positionX);
     int cy = static_cast<int>(positionY);
 
-    const double echelle = 0.5;   // 1.0 = taille d'avant, 0.5 = moitié plus petit
+    const double echelle = 0.5;   // taille
     const int rx = static_cast<int>(20 * echelle);        // demi-longueur du corps
     const int ry = static_cast<int>(10 * echelle);        // demi-hauteur du corps
     const int tailLen = static_cast<int>(15 * echelle);   // longueur de la queue
@@ -121,4 +122,46 @@ void Poisson::suivreBanc(const std::vector<Poisson>& banc) {
     while (diff < -M_PI) diff += 2 * M_PI;
 
     direction += diff * vitesseVirage;   // on tourne un peu, pas d'un coup
+}
+
+void Poisson::eviterRochers(const std::vector<Rocher>& rochers) {
+    const double tailleCorps = 8;     // distance entre le centre du poisson et la surface du rocher
+    const double margeVision = 35;    // à partir de quelle distance du rocher le poisson commence à tourner
+    const double vitesseVirage = 0.35;
+
+    auto ramener = [](double a) {     // ramène un angle entre -π et +π
+        while (a > M_PI)  a -= 2 * M_PI;
+        while (a < -M_PI) a += 2 * M_PI;
+        return a;
+    };
+
+    for (const Rocher& r : rochers) {
+        double dx = positionX - r.positionX;
+        double dy = positionY - r.positionY;
+        double dist = std::sqrt(dx * dx + dy * dy);
+        if (dist == 0) { dx = 1; dist = 1; }
+
+        double limite = r.rayon + tailleCorps;
+        if (dist > limite + margeVision) continue;   // rocher trop loin
+
+        // Angle qui pointe directement à l'opposé du rocher
+        double angleFuite = std::atan2(dy, dx);
+
+        // Deux directions tangentes au rocher : on prend celle qui demande le moins de virage
+        double tangenteA = angleFuite + M_PI / 2;
+        double tangenteB = angleFuite - M_PI / 2;
+        double tangente = (std::fabs(ramener(tangenteA - direction)) < std::fabs(ramener(tangenteB - direction)))
+                              ? tangenteA : tangenteB;
+
+        if (dist < limite) {
+            // Mur : on remet le poisson sur la surface et on le fait glisser le long du rocher
+            positionX = r.positionX + dx / dist * limite;
+            positionY = r.positionY + dy / dist * limite;
+            direction = tangente;
+        } else {
+            // Approche : plus on est près, plus on tourne fort vers la tangente
+            double force = 1.0 - (dist - limite) / margeVision;   // 0 (loin) -> 1 (contre le rocher)
+            direction += ramener(tangente - direction) * force * vitesseVirage;
+        }
+    }
 }
