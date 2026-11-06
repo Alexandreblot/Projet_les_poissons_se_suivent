@@ -64,7 +64,7 @@ void Poisson::dessiner() {
 void Poisson::suivreBanc(const std::vector<Poisson>& banc) {
     const double rayonVision = 100;   // distance à partir de laquelle un voisin compte
     const double distanceMin = 25;    // en dessous, on s'écarte
-    const double vitesseVirage = 0.08; // 0 = ne tourne jamais, 1 = tourne d'un coup
+    const double vitesseVirage = 0.28; // 0 = ne tourne jamais, 1 = tourne d'un coup
 
     double alignX = 0, alignY = 0;     // somme des directions des voisins
     double centreX = 0, centreY = 0;   // somme des positions des voisins
