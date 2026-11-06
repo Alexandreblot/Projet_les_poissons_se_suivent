@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <SDL2/SDL.h>
 #include <array>
 
@@ -16,10 +17,10 @@ public:
 
     void dessiner();
     void updatePosition();
+    void suivreBanc(const std::vector<Poisson>& banc);
 
 private:
     SDL_Renderer* renderer;
-
 
     void handleCollisionWithWindowBounds();
 };
