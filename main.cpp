@@ -17,11 +17,8 @@ int main(int argc, char* argv[]) {
     SDL_Renderer* render = initialisation();
     int nombrePoissons = 500;
     std::vector<Poisson> poissons;
-    poissons.reserve(nombrePoissons);
-    for (int i = 0; i < nombrePoissons; i++) {
-        poissons.emplace_back(render, rand() % 640, rand() % 480);
-        poissons.back().vitesse = 1.5;
-        poissons.back().direction = (rand() % 628) / 100.0;   // angle aléatoire entre 0 et 2π
+    for (int i = 0; i < 5; i++) {
+        poissons.emplace_back(render, rand() % 100 + 1, rand() % 360, rand() % 640, rand() % 480);
     }
 
     bool running = true;
