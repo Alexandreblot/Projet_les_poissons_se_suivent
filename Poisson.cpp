@@ -38,7 +38,7 @@ void Poisson::dessiner() {
     int cx = static_cast<int>(positionX);
     int cy = static_cast<int>(positionY);
 
-    const double echelle = 21.5;   // 1.0 = taille d'avant, 0.5 = moitié plus petit
+    const double echelle = 0.5;   // 1.0 = taille d'avant, 0.5 = moitié plus petit
     const int rx = static_cast<int>(20 * echelle);        // demi-longueur du corps
     const int ry = static_cast<int>(10 * echelle);        // demi-hauteur du corps
     const int tailLen = static_cast<int>(15 * echelle);   // longueur de la queue
@@ -62,9 +62,9 @@ void Poisson::dessiner() {
 }
 
 void Poisson::suivreBanc(const std::vector<Poisson>& banc) {
-    const double rayonVision = 100;   // distance à partir de laquelle un voisin compte
-    const double distanceMin = 25;    // en dessous, on s'écarte
-    const double vitesseVirage = 0.08; // 0 = ne tourne jamais, 1 = tourne d'un coup
+    const double rayonVision = 40;   // distance à partir de laquelle un voisin compte
+    const double distanceMin = 20;    // en dessous, on s'écarte
+    const double vitesseVirage = 0.5; // 0 = ne tourne jamais, 1 = tourne d'un coup
 
     double alignX = 0, alignY = 0;     // somme des directions des voisins
     double centreX = 0, centreY = 0;   // somme des positions des voisins
