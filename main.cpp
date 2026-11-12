@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Erreur chargement image : " << IMG_GetError() << std::endl;
     }
 
-    SDL_Texture* imageRocher = IMG_LoadTexture(render, "rocher.png");
+    SDL_Texture* imageRocher = IMG_LoadTexture(render, "rocher2.png");
     if (!imageRocher) {
         std::cout << "Erreur chargement image rocher : " << IMG_GetError() << std::endl;
     }
@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
     // ---- Rochers ----
     const int nombreRochers = 30;        
     const int rayonMin = 10;            // taille minimale (demi-largeur)
-    const int rayonMax = 80;            // taille maximale
+    const int rayonMax = 90;            // taille maximale
     std::vector<Rocher> rochers;
     for (int i = 0; i < nombreRochers; i++) {
         double rayon = rayonMin + rand() % (rayonMax - rayonMin + 1);
@@ -40,10 +40,15 @@ int main(int argc, char* argv[]) {
     }
 
     // ---- Poissons ----
-    int nombrePoissons = 100;
+    int nombrePoissons = 150;
     std::vector<Poisson> poissons;
     for (int i = 0; i < nombrePoissons; i++) {
-        poissons.emplace_back(render, 3, rand() % 360, rand() % largeur, rand() % hauteur);
+        if( i%30==0 ){
+            poissons.emplace_back(render, 3, rand() % 360, rand() % largeur, rand() % hauteur, 2); 
+        }
+        else{
+            poissons.emplace_back(render, 3, rand() % 360, rand() % largeur, rand() % hauteur, 0.5);
+        }
     }
 
     bool running = true;

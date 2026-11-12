@@ -10,13 +10,15 @@ class Rocher;
 
 class Poisson {
 public:
-    Poisson(SDL_Renderer* renderer, double vitesse, double direction, double positionX = 0.0, double positionY = 0.0);
+    Poisson(SDL_Renderer* renderer, double vitesse, double direction, double positionX = 0.0, double positionY = 0.0, double taille = 0.5);
     ~Poisson() = default;
     
     double vitesse;
     double direction;
     double positionX;
     double positionY;
+    double taille;
+    int nbVoisins;
 
     void dessiner();
     void updatePosition();

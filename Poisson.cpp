@@ -6,8 +6,8 @@
 #include <vector>
 #include <algorithm>
 
-Poisson::Poisson(SDL_Renderer* renderer, double vitesse, double direction, double positionX, double positionY)
-    : renderer(renderer), vitesse(vitesse), direction(direction), positionX(positionX), positionY(positionY) {
+Poisson::Poisson(SDL_Renderer* renderer, double vitesse, double direction, double positionX, double positionY, double taille)
+    : renderer(renderer), vitesse(vitesse), direction(direction), positionX(positionX), positionY(positionY), taille(taille) {
 }
 
 void Poisson::updatePosition() {
@@ -40,10 +40,11 @@ void Poisson::dessiner() {
     int cx = static_cast<int>(positionX);
     int cy = static_cast<int>(positionY);
 
-    const double echelle = 0.5;   // taille
-    const int rx = static_cast<int>(20 * echelle);        // demi-longueur du corps
-    const int ry = static_cast<int>(10 * echelle);        // demi-hauteur du corps
-    const int tailLen = static_cast<int>(15 * echelle);   // longueur de la queue
+
+    
+    const int rx = static_cast<int>(20 * taille);        // demi-longueur du corps
+    const int ry = static_cast<int>(10 * taille);        // demi-hauteur du corps
+    const int tailLen = static_cast<int>(15 * taille);   // longueur de la queue
 
     // Corps
         // Couleur selon le nombre de voisins : 0 = rouge, voisinsMax ou plus = vert
@@ -99,7 +100,7 @@ void Poisson::suivreBanc(const std::vector<Poisson>& banc) {
             separY -= dy / dist;
         }
     }
-
+    nbVoisins = voisins;
     if (voisins == 0) return;   // seul : il continue tout droit
 
     // Direction vers le centre des voisins (vecteur de longueur 1)
