@@ -3,6 +3,9 @@
 #include <cstdlib>
 #include <ctime>
 #include <cmath>
+#include <string>
+#include <algorithm>
+#include <filesystem>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include "SDL.hpp"
@@ -25,6 +28,68 @@ int main(int argc, char* argv[]) {
         std::cout << "Erreur chargement image rocher : " << IMG_GetError() << std::endl;
     }
 
+    // ---- Sons joués quand on pose un rocher (tous les .wav du dossier "sons") ----
+    const std::string dossierSons = "sons";
+    SDL_AudioDeviceID audio = 0;
+    std::vector<std::vector<Uint8>> sons;   // chaque son, converti au format du périphérique audio
+
+    SDL_AudioSpec voulu{}, obtenu{};
+    voulu.freq = 44100;
+    voulu.format = AUDIO_S16SYS;
+    voulu.channels = 2;
+    voulu.samples = 1024;
+    audio = SDL_OpenAudioDevice(NULL, 0, &voulu, &obtenu, 0);
+    if (audio == 0) {
+        std::cout << "Erreur ouverture audio : " << SDL_GetError() << std::endl;
+    } else {
+        SDL_PauseAudioDevice(audio, 0);   // démarre la lecture
+
+        namespace fs = std::filesystem;
+        if (fs::is_directory(dossierSons)) {
+            for (const auto& entree : fs::directory_iterator(dossierSons)) {
+                if (!entree.is_regular_file()) continue;
+
+                std::string ext = entree.path().extension().string();
+                std::transform(ext.begin(), ext.end(), ext.begin(),
+                               [](unsigned char c) { return std::tolower(c); });
+                if (ext != ".wav") continue;
+
+                SDL_AudioSpec spec;
+                Uint8* buf = nullptr;
+                Uint32 len = 0;
+                if (!SDL_LoadWAV(entree.path().string().c_str(), &spec, &buf, &len)) {
+                    std::cout << "Erreur chargement " << entree.path().string() << " : " << SDL_GetError() << std::endl;
+                    continue;
+                }
+
+                // Convertit le son vers le format du périphérique (fréquence, canaux, format)
+                SDL_AudioStream* flux = SDL_NewAudioStream(spec.format, spec.channels, spec.freq,
+                                                           obtenu.format, obtenu.channels, obtenu.freq);
+                if (flux) {
+                    SDL_AudioStreamPut(flux, buf, len);
+                    SDL_AudioStreamFlush(flux);
+                    int dispo = SDL_AudioStreamAvailable(flux);
+                    if (dispo > 0) {
+                        std::vector<Uint8> converti(dispo);
+                        SDL_AudioStreamGet(flux, converti.data(), dispo);
+                        sons.push_back(std::move(converti));
+                    }
+                    SDL_FreeAudioStream(flux);
+                }
+                SDL_FreeWAV(buf);
+            }
+        }
+        std::cout << sons.size() << " son(s) charge(s) depuis le dossier \"" << dossierSons << "\"" << std::endl;
+    }
+
+    // Joue un son choisi au hasard parmi ceux du dossier
+    auto jouerSon = [&]() {
+        if (audio == 0 || sons.empty()) return;
+        const std::vector<Uint8>& son = sons[rand() % sons.size()];
+        SDL_ClearQueuedAudio(audio);          // repart du début si on clique vite
+        SDL_QueueAudio(audio, son.data(), static_cast<Uint32>(son.size()));
+    };
+
     int largeur, hauteur;
     SDL_GetRendererOutputSize(render, &largeur, &hauteur);
 
@@ -43,7 +108,7 @@ int main(int argc, char* argv[]) {
     // ---- Obstacles créés par les clics de souris ----
     const double rayonClic = 10;        // taille de la zone qui repousse les poissons
     const Uint32 dureeClic = 100;      // durée de vie en millisecondes
-    const double rayonPeur = 100;       // distance à partir de laquelle les poissons paniquent
+    const double rayonPeur = 150;       // distance à partir de laquelle les poissons paniquent
     bool boutonEnfonce = false;         // vrai tant que le bouton de la souris est maintenu
     std::vector<Rocher> clics;          // obstacles temporaires (ils n'ont pas d'image)
     std::vector<Uint32> finClics;       // instant où chaque obstacle disparaît
@@ -59,7 +124,7 @@ int main(int argc, char* argv[]) {
     };
 
     // ---- Poissons ----
-    int nombrePoissons = 500;
+    int nombrePoissons = 400;
     std::vector<Poisson> poissons;
     for (int i = 0; i < nombrePoissons; i++) {
         if (i % 50 == 0) {
@@ -77,13 +142,21 @@ int main(int argc, char* argv[]) {
             if (event.type == SDL_QUIT) running = false;
 
             // Clic : on crée un obstacle à l'endroit de la souris
-            if (event.type == SDL_MOUSEBUTTONDOWN) {
+            // Clic gauche : obstacle temporaire qui fait fuir les poissons
+            if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
                 clics.emplace_back(render, nullptr, event.button.x, event.button.y, rayonClic);
                 finClics.push_back(SDL_GetTicks() + dureeClic);
                 boutonEnfonce = true;
             }
-            if (event.type == SDL_MOUSEBUTTONUP) {
+            if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
                 boutonEnfonce = false;
+            }
+
+            // Clic droit : on ajoute un rocher permanent de taille aléatoire
+            if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
+                double rayon = rayonMin + rand() % (rayonMax - rayonMin + 1);
+                rochers.emplace_back(render, imageRocher, event.button.x, event.button.y, rayon);
+                jouerSon();
             }
         }
 
@@ -128,6 +201,7 @@ int main(int argc, char* argv[]) {
         SDL_Delay(16);
     }
 
+    if (audio != 0) SDL_CloseAudioDevice(audio);
     SDL_DestroyTexture(imageRocher);
     SDL_DestroyTexture(fond);
     IMG_Quit();
