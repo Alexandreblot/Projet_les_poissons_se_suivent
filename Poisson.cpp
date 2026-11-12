@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
+#include <algorithm>
 
 Poisson::Poisson(SDL_Renderer* renderer, double vitesse, double direction, double positionX, double positionY)
     : renderer(renderer), vitesse(vitesse), direction(direction), positionX(positionX), positionY(positionY) {
@@ -45,7 +46,13 @@ void Poisson::dessiner() {
     const int tailLen = static_cast<int>(15 * echelle);   // longueur de la queue
 
     // Corps
-    SDL_SetRenderDrawColor(renderer, 255, 128, 0, 255);
+        // Couleur selon le nombre de voisins : 0 = rouge, voisinsMax ou plus = vert
+    const int voisinsMax = 8;
+    double t = std::min(nbVoisins, voisinsMax) / static_cast<double>(voisinsMax);   // entre 0 et 1
+
+    Uint8 r = static_cast<Uint8>(255 * std::min(1.0, 2.0 * (1.0 - t)));
+    Uint8 g = static_cast<Uint8>(255 * std::min(1.0, 2.0 * t));
+    SDL_SetRenderDrawColor(renderer, r, g, 0, 255);
     for (int dy = -ry; dy <= ry; dy++) {
         int half = static_cast<int>(rx * std::sqrt(1.0 - static_cast<double>(dy * dy) / (ry * ry)));
         SDL_RenderDrawLine(renderer, cx - half, cy + dy, cx + half, cy + dy);
