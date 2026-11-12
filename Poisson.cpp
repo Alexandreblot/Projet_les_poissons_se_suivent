@@ -173,3 +173,28 @@ void Poisson::eviterRochers(const std::vector<Rocher>& rochers) {
         }
     }
 }
+
+void Poisson::fuir(double sourceX, double sourceY, double rayonPeur) {
+    const double accelerationMax = 4;   // pixels en plus par image, au plus près de la source
+ 
+    double dx = positionX - sourceX;
+    double dy = positionY - sourceY;
+    double dist = std::sqrt(dx * dx + dy * dy);
+    if (dist >= rayonPeur) return;       // pas de danger ici
+    if (dist == 0) { dx = 1; dist = 1; }
+ 
+    double force = 1.0 - dist / rayonPeur;   // 0 (au bord de la zone) -> 1 (sur la source)
+    double angleFuite = std::atan2(dy, dx);
+ 
+    double diff = angleFuite - direction;
+    while (diff > M_PI)  diff -= 2 * M_PI;
+    while (diff < -M_PI) diff += 2 * M_PI;
+ 
+    // Plus on est proche, plus le poisson se retourne vite et fonce droit à l'opposé
+    direction += diff * (0.2 + 0.7 * force);
+ 
+    // Coup de nageoire : il va plus vite pendant la fuite
+    positionX += std::cos(direction) * accelerationMax * force;
+    positionY += std::sin(direction) * accelerationMax * force;
+}
+ 
