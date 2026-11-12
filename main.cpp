@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
     SDL_Renderer* render = initialisation();
 
     IMG_Init(IMG_INIT_JPG);
-    SDL_Texture* fond = IMG_LoadTexture(render, "fond_marin.jpg");
+    SDL_Texture* fond = IMG_LoadTexture(render, "fond_marin1.jpg");
     if (!fond) {
         std::cout << "Erreur chargement image : " << IMG_GetError() << std::endl;
     }
@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
     // ---- Rochers ----
     const int nombreRochers = 30;        
     const int rayonMin = 10;            // taille minimale (demi-largeur)
-    const int rayonMax = 100;            // taille maximale
+    const int rayonMax = 80;            // taille maximale
     std::vector<Rocher> rochers;
     for (int i = 0; i < nombreRochers; i++) {
         double rayon = rayonMin + rand() % (rayonMax - rayonMin + 1);
