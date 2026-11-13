@@ -1,13 +1,13 @@
 #include <iostream>
 #include <vector>
+#include <string>
+#include <filesystem>
 #include <cstdlib>
 #include <ctime>
 #include <cmath>
-#include <string>
-#include <algorithm>
-#include <filesystem>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_mixer.h>
 #include "SDL.hpp"
 #include "Poisson.hpp"
 #include "Rocher.hpp"
@@ -28,66 +28,43 @@ int main(int argc, char* argv[]) {
         std::cout << "Erreur chargement image rocher : " << IMG_GetError() << std::endl;
     }
 
-    // ---- Sons joués quand on pose un rocher (tous les .wav du dossier "sons") ----
+    // ---- Sons joués quand on pose un rocher (dossier "sons" : mp3, ogg, wav, flac...) ----
     const std::string dossierSons = "sons";
-    SDL_AudioDeviceID audio = 0;
-    std::vector<std::vector<Uint8>> sons;   // chaque son, converti au format du périphérique audio
+    std::vector<Mix_Chunk*> sons;
+    bool audioOuvert = false;
 
-    SDL_AudioSpec voulu{}, obtenu{};
-    voulu.freq = 44100;
-    voulu.format = AUDIO_S16SYS;
-    voulu.channels = 2;
-    voulu.samples = 1024;
-    audio = SDL_OpenAudioDevice(NULL, 0, &voulu, &obtenu, 0);
-    if (audio == 0) {
-        std::cout << "Erreur ouverture audio : " << SDL_GetError() << std::endl;
+    Mix_Init(MIX_INIT_MP3 | MIX_INIT_OGG);   // active les décodeurs MP3 et OGG
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        std::cout << "Erreur ouverture audio : " << Mix_GetError() << std::endl;
     } else {
-        SDL_PauseAudioDevice(audio, 0);   // démarre la lecture
+        audioOuvert = true;
+        Mix_AllocateChannels(16);             // jusqu'à 16 sons en même temps
 
         namespace fs = std::filesystem;
         if (fs::is_directory(dossierSons)) {
-            for (const auto& entree : fs::directory_iterator(dossierSons)) {
+            // On essaie tous les fichiers (sous-dossiers compris) : SDL_mixer regarde le contenu
+            for (const auto& entree : fs::recursive_directory_iterator(dossierSons)) {
                 if (!entree.is_regular_file()) continue;
+                if (entree.path().filename().string()[0] == '.') continue;   // fichiers cachés
 
-                std::string ext = entree.path().extension().string();
-                std::transform(ext.begin(), ext.end(), ext.begin(),
-                               [](unsigned char c) { return std::tolower(c); });
-                if (ext != ".wav") continue;
-
-                SDL_AudioSpec spec;
-                Uint8* buf = nullptr;
-                Uint32 len = 0;
-                if (!SDL_LoadWAV(entree.path().string().c_str(), &spec, &buf, &len)) {
-                    std::cout << "Erreur chargement " << entree.path().string() << " : " << SDL_GetError() << std::endl;
-                    continue;
+                Mix_Chunk* son = Mix_LoadWAV(entree.path().string().c_str());
+                if (son) {
+                    sons.push_back(son);
+                    std::cout << "  son charge : " << entree.path().string() << std::endl;
+                } else {
+                    std::cout << "Erreur chargement " << entree.path().string() << " : " << Mix_GetError() << std::endl;
                 }
-
-                // Convertit le son vers le format du périphérique (fréquence, canaux, format)
-                SDL_AudioStream* flux = SDL_NewAudioStream(spec.format, spec.channels, spec.freq,
-                                                           obtenu.format, obtenu.channels, obtenu.freq);
-                if (flux) {
-                    SDL_AudioStreamPut(flux, buf, len);
-                    SDL_AudioStreamFlush(flux);
-                    int dispo = SDL_AudioStreamAvailable(flux);
-                    if (dispo > 0) {
-                        std::vector<Uint8> converti(dispo);
-                        SDL_AudioStreamGet(flux, converti.data(), dispo);
-                        sons.push_back(std::move(converti));
-                    }
-                    SDL_FreeAudioStream(flux);
-                }
-                SDL_FreeWAV(buf);
             }
+        } else {
+            std::cout << "Dossier introuvable : " << fs::absolute(dossierSons).string() << std::endl;
         }
-        std::cout << sons.size() << " son(s) charge(s) depuis le dossier \"" << dossierSons << "\"" << std::endl;
+        std::cout << sons.size() << " son(s) charge(s) depuis " << fs::absolute(dossierSons).string() << std::endl;
     }
 
     // Joue un son choisi au hasard parmi ceux du dossier
     auto jouerSon = [&]() {
-        if (audio == 0 || sons.empty()) return;
-        const std::vector<Uint8>& son = sons[rand() % sons.size()];
-        SDL_ClearQueuedAudio(audio);          // repart du début si on clique vite
-        SDL_QueueAudio(audio, son.data(), static_cast<Uint32>(son.size()));
+        if (!audioOuvert || sons.empty()) return;
+        Mix_PlayChannel(-1, sons[rand() % sons.size()], 0);   // -1 = premier canal libre
     };
 
     int largeur, hauteur;
@@ -109,7 +86,7 @@ int main(int argc, char* argv[]) {
     const double rayonClic = 10;        // taille de la zone qui repousse les poissons
     const Uint32 dureeClic = 100;      // durée de vie en millisecondes
     const double rayonPeur = 150;       // distance à partir de laquelle les poissons paniquent
-    bool boutonEnfonce = false;         // vrai tant que le bouton de la souris est maintenu
+    bool boutonEnfonce = false;         // vrai tant que le bouton gauche est maintenu
     std::vector<Rocher> clics;          // obstacles temporaires (ils n'ont pas d'image)
     std::vector<Uint32> finClics;       // instant où chaque obstacle disparaît
 
@@ -141,7 +118,6 @@ int main(int argc, char* argv[]) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) running = false;
 
-            // Clic : on crée un obstacle à l'endroit de la souris
             // Clic gauche : obstacle temporaire qui fait fuir les poissons
             if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
                 clics.emplace_back(render, nullptr, event.button.x, event.button.y, rayonClic);
@@ -152,7 +128,7 @@ int main(int argc, char* argv[]) {
                 boutonEnfonce = false;
             }
 
-            // Clic droit : on ajoute un rocher permanent de taille aléatoire
+            // Clic droit : on ajoute un rocher permanent de taille aléatoire + un son
             if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
                 double rayon = rayonMin + rand() % (rayonMax - rayonMin + 1);
                 rochers.emplace_back(render, imageRocher, event.button.x, event.button.y, rayon);
@@ -201,7 +177,12 @@ int main(int argc, char* argv[]) {
         SDL_Delay(16);
     }
 
-    if (audio != 0) SDL_CloseAudioDevice(audio);
+    for (Mix_Chunk* son : sons) {
+        Mix_FreeChunk(son);
+    }
+    if (audioOuvert) Mix_CloseAudio();
+    Mix_Quit();
+
     SDL_DestroyTexture(imageRocher);
     SDL_DestroyTexture(fond);
     IMG_Quit();
