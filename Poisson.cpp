@@ -70,10 +70,10 @@ void Poisson::dessiner() {
     SDL_RenderDrawPoint(renderer, cx + rx / 2, cy - ry / 3);
 }
 
-void Poisson::suivreBanc(const std::vector<Poisson>& banc) {
-    const double rayonVision = 40;   // distance à partir de laquelle un voisin compte
-    const double distanceMin = 20;    // en dessous, on s'écarte
-    const double vitesseVirage = 0.5; // 0 = ne tourne jamais, 1 = tourne d'un coup
+void Poisson::suivreBanc(const std::vector<Poisson>& banc, const ParametresBanc& params) {
+    const double rayonVision = params.rayonVision;
+    const double distanceMin = params.distanceMin;
+    const double vitesseVirage = params.vitesseVirage;
 
     double alignX = 0, alignY = 0;     // somme des directions des voisins
     double centreX = 0, centreY = 0;   // somme des positions des voisins
@@ -114,13 +114,13 @@ void Poisson::suivreBanc(const std::vector<Poisson>& banc) {
 
     // Direction souhaitée = direction actuelle + les trois règles
     double voulueX = std::cos(direction)
-                   + 1.0 * (alignX / voisins)
-                   + 0.5 * versCentreX
-                   + 1.5 * separX;
+                + params.poidsAlignement * (alignX / voisins)
+                + params.poidsCohesion * versCentreX
+                + params.poidsSeparation * separX;
     double voulueY = std::sin(direction)
-                   + 1.0 * (alignY / voisins)
-                   + 0.5 * versCentreY
-                   + 1.5 * separY;
+                + params.poidsAlignement * (alignY / voisins)
+                + params.poidsCohesion * versCentreY
+                + params.poidsSeparation * separY;
 
     double angleVoulu = std::atan2(voulueY, voulueX);
 

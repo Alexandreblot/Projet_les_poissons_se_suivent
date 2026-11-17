@@ -5,6 +5,14 @@
 #include <array>
 #include <vector>
 
+struct ParametresBanc {
+    double rayonVision = 100;
+    double distanceMin = 25;
+    double vitesseVirage = 0.08;
+    double poidsAlignement = 1.0;
+    double poidsCohesion = 0.5;
+    double poidsSeparation = 1.5;
+};
 
 class Rocher;
 
@@ -22,7 +30,7 @@ public:
 
     void dessiner();
     void updatePosition();
-    void suivreBanc(const std::vector<Poisson>& banc);
+    void suivreBanc(const std::vector<Poisson>& banc, const ParametresBanc& params);
     void eviterRochers(const std::vector<Rocher>& rochers);
     void fuir(double sourceX, double sourceY, double rayonPeur);
 

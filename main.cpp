@@ -2,15 +2,55 @@
 #include <vector>
 #include <string>
 #include <filesystem>
+#include <algorithm>
+#include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <cmath>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
+#include <SDL2/SDL_ttf.h>
 #include "SDL.hpp"
 #include "Poisson.hpp"
 #include "Rocher.hpp"
+
+// ---------------------------------------------------------------------------
+// Une barre de réglage horizontale qui modifie un paramètre (via un pointeur)
+// ---------------------------------------------------------------------------
+struct Slider {
+    std::string nom;
+    double* valeur;        // le paramètre que la barre modifie
+    double vMin, vMax;
+    SDL_Color couleur;
+    SDL_Rect rail;
+
+    double ratio() const { return (*valeur - vMin) / (vMax - vMin); }
+
+    bool contient(int mx, int my) const {
+        return mx >= rail.x - 8 && mx <= rail.x + rail.w + 8 &&
+               my >= rail.y - 10 && my <= rail.y + rail.h + 10;
+    }
+
+    void regler(int mx) {
+        double t = static_cast<double>(mx - rail.x) / rail.w;
+        t = std::max(0.0, std::min(1.0, t));
+        *valeur = vMin + t * (vMax - vMin);
+    }
+
+    void dessiner(SDL_Renderer* r) const {
+        SDL_SetRenderDrawColor(r, 60, 60, 70, 255);
+        SDL_RenderFillRect(r, &rail);
+
+        SDL_Rect rempli = { rail.x, rail.y, static_cast<int>(ratio() * rail.w), rail.h };
+        SDL_SetRenderDrawColor(r, couleur.r, couleur.g, couleur.b, 255);
+        SDL_RenderFillRect(r, &rempli);
+
+        SDL_Rect curseur = { rail.x + static_cast<int>(ratio() * rail.w) - 4, rail.y - 5, 8, rail.h + 10 };
+        SDL_SetRenderDrawColor(r, 255, 255, 255, 255);
+        SDL_RenderFillRect(r, &curseur);
+    }
+};
 
 int main(int argc, char* argv[]) {
     srand(static_cast<unsigned>(time(nullptr)));
@@ -27,6 +67,38 @@ int main(int argc, char* argv[]) {
     if (!imageRocher) {
         std::cout << "Erreur chargement image rocher : " << IMG_GetError() << std::endl;
     }
+
+    // ---- Police pour les textes du panneau ----
+    // On essaie d'abord "police.ttf" (à mettre à côté de l'exécutable), puis des polices du système
+    TTF_Init();
+    TTF_Font* police = nullptr;
+    const char* cheminsPolice[] = {
+        "police.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",   // Linux (Debian/Ubuntu)
+        "/System/Library/Fonts/Supplemental/Arial.ttf",      // macOS
+        "C:/Windows/Fonts/arial.ttf"                         // Windows
+    };
+    for (const char* chemin : cheminsPolice) {
+        police = TTF_OpenFont(chemin, 14);
+        if (police) break;
+    }
+    if (!police) {
+        std::cout << "Aucune police trouvee : " << TTF_GetError() << std::endl;
+    }
+
+    // Écrit un texte à la position (x, y)
+    auto dessinerTexte = [&](const std::string& texte, int x, int y, SDL_Color couleur) {
+        if (!police) return;
+        SDL_Surface* surf = TTF_RenderUTF8_Blended(police, texte.c_str(), couleur);
+        if (!surf) return;
+        SDL_Texture* tex = SDL_CreateTextureFromSurface(render, surf);
+        SDL_Rect dest = { x, y, surf->w, surf->h };
+        SDL_FreeSurface(surf);
+        if (tex) {
+            SDL_RenderCopy(render, tex, NULL, &dest);
+            SDL_DestroyTexture(tex);
+        }
+    };
 
     // ---- Sons joués quand on pose un rocher (dossier "sons" : mp3, ogg, wav, flac...) ----
     const std::string dossierSons = "sons";
@@ -84,7 +156,7 @@ int main(int argc, char* argv[]) {
 
     // ---- Obstacles créés par les clics de souris ----
     const double rayonClic = 10;        // taille de la zone qui repousse les poissons
-    const Uint32 dureeClic = 100;      // durée de vie en millisecondes
+    const Uint32 dureeClic = 100;       // durée de vie en millisecondes
     const double rayonPeur = 150;       // distance à partir de laquelle les poissons paniquent
     bool boutonEnfonce = false;         // vrai tant que le bouton gauche est maintenu
     std::vector<Rocher> clics;          // obstacles temporaires (ils n'ont pas d'image)
@@ -111,6 +183,31 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // ---- Panneau de réglages à droite ----
+    ParametresBanc params;              // rayon de vision, poids, etc. (défini dans Poisson.hpp)
+    double vitesse = 3;                 // vitesse de tous les poissons
+    int sliderActif = -1;               // indice de la barre qu'on tient (-1 = aucune)
+
+    const int panneauL = 220;
+    SDL_Rect panneau = { largeur - panneauL - 10, 10, panneauL, hauteur - 20 };
+
+    std::vector<Slider> sliders;
+    auto ajouterSlider = [&](const std::string& nom, double* valeur, double vMin, double vMax, SDL_Color couleur) {
+        int i = static_cast<int>(sliders.size());
+        // 45 pixels sous le haut du panneau (pour le titre), puis 50 pixels entre chaque barre
+        // (la place au-dessus de chaque barre sert au texte)
+        SDL_Rect rail = { panneau.x + 15, panneau.y + 55 + i * 50, panneau.w - 30, 10 };
+        sliders.push_back({ nom, valeur, vMin, vMax, couleur, rail });
+    };
+
+    ajouterSlider("Rayon de vision",   &params.rayonVision,      20,   250, {255, 255, 255, 255});  // blanc
+    ajouterSlider("Distance de securite", &params.distanceMin,   5,    80,  {255, 100, 100, 255});  // rouge
+    ajouterSlider("Vitesse de virage", &params.vitesseVirage,    0.01, 0.5, {100, 200, 255, 255});  // bleu
+    ajouterSlider("Alignement",        &params.poidsAlignement,  0,    3,   {100, 255, 100, 255});  // vert
+    ajouterSlider("Cohesion",          &params.poidsCohesion,    0,    3,   {255, 220, 80,  255});  // jaune
+    ajouterSlider("Separation",        &params.poidsSeparation,  0,    5,   {255, 150, 50,  255});  // orange
+    ajouterSlider("Vitesse des poissons", &vitesse,              0.5,  8,   {200, 120, 255, 255});  // violet
+
     bool running = true;
     SDL_Event event;
 
@@ -118,14 +215,34 @@ int main(int argc, char* argv[]) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) running = false;
 
-            // Clic gauche : obstacle temporaire qui fait fuir les poissons
+            // Clic gauche : soit on attrape une barre, soit on crée un obstacle
             if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
-                clics.emplace_back(render, nullptr, event.button.x, event.button.y, rayonClic);
-                finClics.push_back(SDL_GetTicks() + dureeClic);
-                boutonEnfonce = true;
+                int mx = event.button.x, my = event.button.y;
+
+                int touche = -1;
+                for (size_t i = 0; i < sliders.size(); i++) {
+                    if (sliders[i].contient(mx, my)) touche = static_cast<int>(i);
+                }
+                bool dansPanneau = mx >= panneau.x && mx <= panneau.x + panneau.w &&
+                                   my >= panneau.y && my <= panneau.y + panneau.h;
+
+                if (touche >= 0) {
+                    sliderActif = touche;
+                    sliders[touche].regler(mx);
+                } else if (!dansPanneau) {   // un clic dans le panneau ne crée pas d'obstacle
+                    clics.emplace_back(render, nullptr, event.button.x, event.button.y, rayonClic);
+                    finClics.push_back(SDL_GetTicks() + dureeClic);
+                    boutonEnfonce = true;
+                }
             }
             if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
                 boutonEnfonce = false;
+                sliderActif = -1;
+            }
+
+            // Mouvement de la souris pendant qu'on tient une barre
+            if (event.type == SDL_MOUSEMOTION && sliderActif >= 0) {
+                sliders[sliderActif].regler(event.motion.x);
             }
 
             // Clic droit : on ajoute un rocher permanent de taille aléatoire + un son
@@ -134,6 +251,14 @@ int main(int argc, char* argv[]) {
                 rochers.emplace_back(render, imageRocher, event.button.x, event.button.y, rayon);
                 jouerSon();
             }
+        }
+
+        // Nom et valeur de la barre tenue : affichés dans le titre de la fenêtre
+        if (sliderActif >= 0) {
+            char titre[64];
+            std::snprintf(titre, sizeof(titre), "%s : %.2f",
+                          sliders[sliderActif].nom.c_str(), *sliders[sliderActif].valeur);
+            SDL_SetWindowTitle(SDL_RenderGetWindow(render), titre);
         }
 
         SDL_RenderCopy(render, fond, NULL, NULL);
@@ -163,14 +288,33 @@ int main(int argc, char* argv[]) {
         }
 
         for (auto& p : poissons) {
-            p.suivreBanc(poissons);
+            p.suivreBanc(poissons, params);
             p.eviterRochers(rochers);
             p.eviterRochers(clics);
             for (auto& c : clics) {
                 p.fuir(c.positionX, c.positionY, rayonPeur);
             }
+            p.vitesse = vitesse;
             p.updatePosition();
             p.dessiner();
+        }
+
+        // Panneau de réglages, dessiné par-dessus tout le reste
+        SDL_SetRenderDrawBlendMode(render, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(render, 20, 20, 30, 200);   // fond sombre semi-transparent
+        SDL_RenderFillRect(render, &panneau);
+        SDL_SetRenderDrawColor(render, 255, 255, 255, 255);
+        SDL_RenderDrawRect(render, &panneau);               // contour
+
+        dessinerTexte("Reglages du banc", panneau.x + 15, panneau.y + 12, {255, 255, 255, 255});
+
+        for (const auto& s : sliders) {
+            s.dessiner(render);
+
+            // Texte au-dessus de la barre : nom du réglage et valeur actuelle
+            char texte[64];
+            std::snprintf(texte, sizeof(texte), "%s : %.2f", s.nom.c_str(), *s.valeur);
+            dessinerTexte(texte, s.rail.x, s.rail.y - 26, s.couleur);
         }
 
         SDL_RenderPresent(render);
@@ -182,6 +326,9 @@ int main(int argc, char* argv[]) {
     }
     if (audioOuvert) Mix_CloseAudio();
     Mix_Quit();
+
+    if (police) TTF_CloseFont(police);
+    TTF_Quit();
 
     SDL_DestroyTexture(imageRocher);
     SDL_DestroyTexture(fond);
